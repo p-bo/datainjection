@@ -52,7 +52,7 @@ class PluginDatainjectionOperatingSystemInjection extends OperatingSystem
 
    function connectedTo() {
 
-      return array();
+      return array('Computer');
    }
 
 
@@ -68,7 +68,7 @@ class PluginDatainjectionOperatingSystemInjection extends OperatingSystem
       $notimportable = array();
 
       $options['ignore_fields'] = array_merge($blacklist, $notimportable);
-      $options['displaytype']   = array("multiline_text" => array(16));
+      $options['displaytype']   = array("multiline_text" => array(16), 'dropdown' => [1]);
 
       return PluginDatainjectionCommonInjectionLib::addToSearchOptions($tab, $options, $this);
    }
@@ -84,4 +84,34 @@ class PluginDatainjectionOperatingSystemInjection extends OperatingSystem
       return $lib->getInjectionResults();
    }
 
+    /**
+    * @param $values
+    * @param $add                (true by default)
+    * @param $rights    array
+   **/
+   function processAfterInsertOrUpdate($values, $add=true, $rights=array()) {
+
+      if (isset($values['Computer']['id'])) {
+         $class   = "Item_".get_parent_class($this);
+         $item    = new $class();
+         $foreign = getForeignKeyFieldForTable(getTableForItemType(get_parent_class($this)));
+
+         $exists = $item->getFromDBByCrit([
+            'itemtype'  => 'Computer',
+            'items_id'  => $values['Computer']['id']
+         ]);
+
+         if (!$exists) {
+            $tmp[$foreign]   = $values[get_parent_class($this)]['id'];
+            $tmp['items_id'] = $values['Computer']['id'];
+            $tmp['itemtype'] = 'Computer';
+            $item->add($tmp);
+         } else {
+            $item->update([
+               'id'  => $item->getID(),
+               $foreign => $values[get_parent_class($this)]['id']
+            ]);
+         }
+      }
+   }
 }
